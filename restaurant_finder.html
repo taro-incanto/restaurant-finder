@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>週末飲食店AI</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff;
+  --bg2: #f7f6f3;
+  --bg3: #f0efe9;
+  --text: #1a1a1a;
+  --text2: #666;
+  --text3: #999;
+  --border: rgba(0,0,0,0.12);
+  --border2: rgba(0,0,0,0.22);
+  --purple-bg: #EEEDFE;
+  --purple-text: #3C3489;
+  --purple-border: #7F77DD;
+  --green-bg: #E1F5EE;
+  --green-text: #085041;
+  --amber: #EF9F27;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e1e;
+    --bg2: #282828;
+    --bg3: #2e2e2e;
+    --text: #f0f0f0;
+    --text2: #aaa;
+    --text3: #777;
+    --border: rgba(255,255,255,0.12);
+    --border2: rgba(255,255,255,0.22);
+    --purple-bg: #26215C;
+    --purple-text: #AFA9EC;
+    --purple-border: #7F77DD;
+    --green-bg: #04342C;
+    --green-text: #9FE1CB;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; font-size: 16px; }
+.container { max-width: 680px; margin: 0 auto; padding: 0 0 4rem; }
+header { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 16px 20px; position: sticky; top: 0; z-index: 100; }
+header h1 { font-size: 18px; font-weight: 500; }
+header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.tabs { display: flex; background: var(--bg); border-bottom: 0.5px solid var(--border); overflow-x: auto; position: sticky; top: 57px; z-index: 99; }
+.tab { padding: 12px 18px; font-size: 14px; cursor: pointer; color: var(--text2); border: none; background: none; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; }
+.tab.active { color: #534AB7; border-bottom-color: #534AB7; font-weight: 500; }
+.pane { display: none; padding: 20px; }
+.pane.active { display: block; }
+.field-group { margin-bottom: 16px; }
+label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 5px; }
+input[type=text], input[type=date], input[type=time], select, textarea {
+  width: 100%; padding: 9px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius);
+  background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--purple-border); box-shadow: 0 0 0 2px rgba(127,119,221,0.2); }
+textarea { min-height: 72px; resize: vertical; line-height: 1.5; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.tag { padding: 5px 13px; border: 0.5px solid var(--border2); border-radius: 20px; font-size: 13px; cursor: pointer; background: var(--bg); color: var(--text); transition: all 0.12s; user-select: none; }
+.tag.on { background: var(--purple-bg); border-color: var(--purple-border); color: var(--purple-text); }
+.btn { padding: 9px 16px; background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 14px; cursor: pointer; color: var(--text); font-family: inherit; transition: background 0.12s; }
+.btn:hover { background: var(--bg2); }
+.btn:active { transform: scale(0.98); }
+.btn-w { width: 100%; font-size: 15px; margin-top: 8px; padding: 11px; }
+.btn-danger { color: #c00; }
+.card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 12px; }
+.card-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.card-sub { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+.card-body { font-size: 13px; color: var(--text2); line-height: 1.65; }
+.badge { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 10px; margin-right: 5px; margin-bottom: 3px; background: var(--purple-bg); color: var(--purple-text); }
+.badge-green { background: var(--green-bg); color: var(--green-text); }
+.loading { font-size: 14px; color: var(--text2); padding: 16px 0; text-align: center; }
+.empty { font-size: 14px; color: var(--text3); text-align: center; padding: 2rem 0; }
+.info-box { background: var(--bg2); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.7; }
+.share-box { background: var(--purple-bg); border-radius: var(--radius); padding: 14px 16px; font-size: 13px; color: var(--purple-text); margin-bottom: 16px; line-height: 1.8; }
+.share-box strong { font-weight: 500; }
+.section-hd { font-size: 12px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 10px; }
+.stars { display: flex; gap: 5px; cursor: pointer; }
+.star { font-size: 28px; color: var(--border2); transition: color 0.1s; line-height: 1; }
+.star.on { color: var(--amber); }
+.drop-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius-lg); padding: 24px; text-align: center; cursor: pointer; color: var(--text2); font-size: 14px; transition: background 0.12s; }
+.drop-zone:hover { background: var(--bg2); }
+.drop-icon { font-size: 28px; margin-bottom: 8px; }
+.store-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.store-table th { text-align: left; padding: 8px 10px; border-bottom: 0.5px solid var(--border); color: var(--text2); font-weight: 500; }
+.store-table td { padding: 8px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); }
+.store-table tr:last-child td { border-bottom: none; }
+.del-btn { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 12px; padding: 2px 6px; }
+.del-btn:hover { color: #c00; }
+.cal-event { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.cal-event:last-child { border-bottom: none; }
+.cal-time { font-size: 12px; color: var(--text2); min-width: 72px; padding-top: 2px; line-height: 1.5; }
+.cal-title { font-size: 14px; color: var(--text); font-weight: 500; }
+.cal-loc { font-size: 12px; color: var(--text2); margin-top: 3px; }
+.today-banner { background: var(--bg2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+#cal-msg { font-size: 13px; color: var(--text2); margin-top: 8px; min-height: 20px; }
+.api-key-section { background: var(--bg2); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px; }
+.api-key-section h3 { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+.api-key-note { font-size: 12px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+.api-key-note a { color: var(--purple-text); }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ccc; margin-right: 6px; }
+.status-dot.ok { background: #2d9e6e; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🍽 週末飲食店AI</h1>
+    <p>行きたいお店を見つけて、記録して、カレンダーに登録</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="sw('search')">検索</button>
+    <button class="tab" onclick="sw('review')">採点・記録</button>
+    <button class="tab" onclick="sw('calendar')">カレンダー</button>
+    <button class="tab" onclick="sw('data')">データ管理</button>
+    <button class="tab" onclick="sw('settings')">設定</button>
+  </div>
+
+  <!-- 検索 -->
+  <div class="pane active" id="pane-search">
+    <div class="field-group">
+      <label>エリア・場所</label>
+      <input type="text" id="area" placeholder="例：渋谷、新宿、自由が丘…">
+    </div>
+    <div class="field-group">
+      <label>ジャンル</label>
+      <div class="tags" id="genre-tags">
+        <span class="tag" onclick="tt(this)">和食</span>
+        <span class="tag" onclick="tt(this)">イタリアン</span>
+        <span class="tag" onclick="tt(this)">中華</span>
+        <span class="tag" onclick="tt(this)">焼肉</span>
+        <span class="tag" onclick="tt(this)">寿司</span>
+        <span class="tag" onclick="tt(this)">居酒屋</span>
+        <span class="tag" onclick="tt(this)">カフェ</span>
+        <span class="tag" onclick="tt(this)">ラーメン</span>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field-group">
+        <label>予算（1人）</label>
+        <select id="budget">
+          <option value="">指定なし</option>
+          <option>〜1,000円</option>
+          <option>1,000〜2,000円</option>
+          <option>2,000〜4,000円</option>
+          <option>4,000〜8,000円</option>
+          <option>8,000円〜</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>人数</label>
+        <select id="people">
+          <option value="">指定なし</option>
+          <option>1人</option>
+          <option>2人</option>
+          <option>3〜5人</option>
+          <option>6〜10人</option>
+          <option>10人以上</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-group">
+      <label>その他の希望（任意）</label>
+      <input type="text" id="extra" placeholder="例：個室あり、禁煙、テラス席…">
+    </div>
+    <button class="btn btn-w" onclick="doSearch()">AIにおすすめを聞く ↗</button>
+    <div id="result-area"></div>
+  </div>
+
+  <!-- 採点・記録 -->
+  <div class="pane" id="pane-review">
+    <div class="card">
+      <div class="section-hd" style="margin-top:0">新しいレビューを追加</div>
+      <div class="field-group">
+        <label>店名</label>
+        <input type="text" id="rv-name" placeholder="お店の名前">
+      </div>
+      <div class="row2">
+        <div class="field-group">
+          <label>エリア</label>
+          <input type="text" id="rv-area" placeholder="渋谷…">
+        </div>
+        <div class="field-group">
+          <label>ジャンル</label>
+          <input type="text" id="rv-genre" placeholder="和食…">
+        </div>
+      </div>
+      <div class="field-group">
+        <label>評価</label>
+        <div class="stars" id="star-input">
+          <span class="star" onclick="setStar(1)">★</span>
+          <span class="star" onclick="setStar(2)">★</span>
+          <span class="star" onclick="setStar(3)">★</span>
+          <span class="star" onclick="setStar(4)">★</span>
+          <span class="star" onclick="setStar(5)">★</span>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>コメント</label>
+        <textarea id="rv-comment" placeholder="感想・メモ…"></textarea>
+      </div>
+      <div class="field-group">
+        <label>訪問日</label>
+        <input type="date" id="rv-date">
+      </div>
+      <button class="btn btn-w" onclick="saveReview()">記録を保存</button>
+    </div>
+
+    <div class="section-hd">過去の記録 <span id="rv-count" class="badge">0件</span></div>
+    <div id="review-list"></div>
+  </div>
+
+  <!-- カレンダー -->
+  <div class="pane" id="pane-calendar">
+    <div class="today-banner" id="today-banner"></div>
+    <div class="section-hd" style="margin-top:0">今日の飲食予定</div>
+    <div id="today-events"><p class="empty">カレンダータブを開くと取得します</p></div>
+
+    <div class="section-hd">飲食予定を登録する</div>
+    <div class="card">
+      <div class="field-group">
+        <label>店名</label>
+        <input type="text" id="cal-name" placeholder="お店の名前">
+      </div>
+      <div class="row2">
+        <div class="field-group">
+          <label>日付</label>
+          <input type="date" id="cal-date">
+        </div>
+        <div class="field-group">
+          <label>時間</label>
+          <input type="time" id="cal-time" value="19:00">
+        </div>
+      </div>
+      <div class="field-group">
+        <label>場所・住所（任意）</label>
+        <input type="text" id="cal-loc" placeholder="渋谷区…">
+      </div>
+      <div class="field-group">
+        <label>メモ（任意）</label>
+        <input type="text" id="cal-memo" placeholder="予約番号、人数など…">
+      </div>
+      <button class="btn btn-w" onclick="addToCalendar()">Googleカレンダーに追加 ↗</button>
+      <p id="cal-msg"></p>
+    </div>
+
+    <div class="section-hd">今後1ヶ月の飲食予定</div>
+    <div id="month-events"><p class="empty">読み込み中…</p></div>
+  </div>
+
+  <!-- データ管理 -->
+  <div class="pane" id="pane-data">
+    <div class="share-box">
+      <strong>URL共有について</strong><br>
+      このHTMLファイルをお二人でアクセスできるサーバーに置いてください。<br>
+      簡単な方法：<strong>GitHub Pages</strong> や <strong>Vercel</strong> に無料でホスティングできます。<br>
+      データはブラウザのlocalStorageに保存されます（端末ごと）。
+    </div>
+    <div class="info-box">
+      CSVヘッダー例：<strong>店名, ジャンル, エリア, 価格帯, 特徴, 記事URL</strong><br>
+      ヘッダー名は日本語・英語どちらでも認識します。
+    </div>
+    <div class="drop-zone" onclick="document.getElementById('fi').click()" ondragover="event.preventDefault();this.style.background='var(--bg2)'" ondragleave="this.style.background=''" ondrop="handleDrop(event)">
+      <div class="drop-icon">📂</div>
+      クリックまたはD&DでCSV/Excelを読み込む<br>
+      <span style="font-size:12px;color:var(--text3);margin-top:4px;display:block;">.csv / .xlsx 対応</span>
+    </div>
+    <input type="file" id="fi" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;">
+      <span style="font-size:14px;font-weight:500;">登録データ <span id="db-count" class="badge">0件</span></span>
+      <button class="btn btn-danger" style="font-size:12px;padding:5px 12px;" onclick="clearStores()">全削除</button>
+    </div>
+    <div id="store-list"></div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="pane" id="pane-settings">
+    <div class="api-key-section">
+      <h3><span class="status-dot" id="api-dot"></span>Anthropic APIキー</h3>
+      <div class="field-group">
+        <input type="password" id="api-key-input" placeholder="sk-ant-api03-...">
+      </div>
+      <button class="btn" onclick="saveApiKey()">保存</button>
+      <button class="btn btn-danger" style="margin-left:8px;" onclick="clearApiKey()">削除</button>
+      <p class="api-key-note">
+        APIキーは <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> で取得できます。<br>
+        キーはこの端末のlocalStorageにのみ保存されます。サーバーには送信されません。
+      </p>
+    </div>
+
+    <div class="api-key-section">
+      <h3>Google カレンダー連携</h3>
+      <p class="api-key-note" style="margin-top:0">
+        カレンダー機能にはAnthropicのMCPサーバー経由でGoogleカレンダーにアクセスします。<br>
+        現在このスタンドアロン版ではカレンダー機能は<strong>Claude.ai上のアーティファクト版</strong>でのみ動作します。<br>
+        スタンドアロン版でのカレンダー連携にはGoogle Calendar APIの設定が別途必要です。
+      </p>
+    </div>
+
+    <div class="api-key-section">
+      <h3>データのエクスポート</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+        <button class="btn" onclick="exportReviews()">レビューをCSVで保存</button>
+        <button class="btn" onclick="exportStores()">登録店をCSVで保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+let stores = [], reviews = [], starVal = 0;
+
+// --- init ---
+function init() {
+  try { stores = JSON.parse(localStorage.getItem('rf_stores') || '[]'); } catch(e) { stores = []; }
+  try { reviews = JSON.parse(localStorage.getItem('rf_reviews') || '[]'); } catch(e) { reviews = []; }
+  renderStoreList(); renderReviews(); updateBadges();
+  checkApiKey();
+  const today = new Date();
+  document.getElementById('cal-date').value = today.toISOString().split('T')[0];
+  document.getElementById('rv-date').value = today.toISOString().split('T')[0];
+  document.getElementById('today-banner').textContent = today.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  const savedKey = localStorage.getItem('rf_api_key') || '';
+  if (savedKey) document.getElementById('api-key-input').value = savedKey;
+}
+
+function getApiKey() { return localStorage.getItem('rf_api_key') || ''; }
+function saveApiKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k) { alert('APIキーを入力してください。'); return; }
+  localStorage.setItem('rf_api_key', k);
+  checkApiKey();
+  alert('APIキーを保存しました。');
+}
+function clearApiKey() {
+  localStorage.removeItem('rf_api_key');
+  document.getElementById('api-key-input').value = '';
+  checkApiKey();
+}
+function checkApiKey() {
+  const dot = document.getElementById('api-dot');
+  dot.classList.toggle('ok', !!getApiKey());
+}
+
+// --- tabs ---
+function sw(name) {
+  const names = ['search','review','calendar','data','settings'];
+  names.forEach((n,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', n===name);
+    document.getElementById('pane-'+n).classList.toggle('active', n===name);
+  });
+  if (name==='calendar') loadCalendar();
+}
+
+function tt(el) { el.classList.toggle('on'); }
+function updateBadges() {
+  document.getElementById('db-count').textContent = stores.length+'件';
+  document.getElementById('rv-count').textContent = reviews.length+'件';
+}
+
+// --- API call ---
+async function callAI(prompt, maxTokens=1000) {
+  const key = getApiKey();
+  if (!key) throw new Error('APIキーが設定されていません。設定タブでAPIキーを入力してください。');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: 'claude-opus-4-5', max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.error?.message || 'API呼び出しに失敗しました');
+  }
+  const data = await res.json();
+  return data.content.map(b => b.text||'').join('');
+}
+
+// --- search ---
+async function doSearch() {
+  const area = document.getElementById('area').value.trim();
+  if (!area) { document.getElementById('result-area').innerHTML='<p style="color:#c00;font-size:14px;padding:8px 0;">エリアを入力してください。</p>'; return; }
+  const genres = [...document.querySelectorAll('#genre-tags .tag.on')].map(t=>t.textContent);
+  const budget = document.getElementById('budget').value;
+  const people = document.getElementById('people').value;
+  const extra = document.getElementById('extra').value.trim();
+  document.getElementById('result-area').innerHTML='<p class="loading">AIがおすすめを考えています…</p>';
+  const cond = [
+    `エリア: ${area}`,
+    genres.length ? `ジャンル: ${genres.join('・')}` : null,
+    budget ? `予算（1人）: ${budget}` : null,
+    people ? `人数: ${people}` : null,
+    extra ? `その他: ${extra}` : null
+  ].filter(Boolean).join('\n');
+  let dbSec = '';
+  if (stores.length) {
+    const rel = stores.filter(s => (s.area&&s.area.includes(area)) || genres.some(g=>s.genre&&s.genre.includes(g)));
+    const pool = rel.length ? rel : stores.slice(0,15);
+    dbSec = `\n\n【登録データ（報道した飲食店）】\n${pool.map(s=>`- ${s.name}（${s.genre||''}・${s.area||''}・${s.price||''}）${s.features?'特徴:'+s.features:''}`).join('\n')}\n優先的に活用してください。`;
+  }
+  const rvSec = reviews.length ? `\n\n【過去の訪問記録（参考）】\n${reviews.slice(0,8).map(r=>`- ${r.name} ★${r.stars} ${r.comment||''}`).join('\n')}` : '';
+  try {
+    const text = await callAI(`飲食店を探しています。\n${cond}${dbSec}${rvSec}\n\nJSON形式のみで返答。形式: [{"name":"","genre":"","price":"","features":[],"reason":"","source":"登録データ or AI提案"}]`);
+    const clean = text.replace(/```json|```/g,'').trim();
+    renderResults(JSON.parse(clean));
+  } catch(e) {
+    document.getElementById('result-area').innerHTML=`<p style="font-size:14px;color:var(--text2);padding:8px 0;">${e.message}</p>`;
+  }
+}
+
+function renderResults(list) {
+  document.getElementById('result-area').innerHTML = (!list||!list.length)
+    ? '<p class="empty">条件に合うお店が見つかりませんでした。</p>'
+    : list.map(r=>`<div class="card" style="margin-top:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+          <div class="card-title">${r.name}</div>
+          ${r.source==='登録データ'?'<span class="badge badge-green">報道データ</span>':''}
+        </div>
+        <div class="card-sub">${r.genre||''}${r.price?' · '+r.price:''}</div>
+        <div style="margin-bottom:10px;">${(r.features||[]).map(f=>`<span class="badge">${f}</span>`).join('')}</div>
+        <div class="card-body">${r.reason}</div>
+        <button class="btn" style="font-size:12px;padding:5px 12px;margin-top:12px;" onclick="prefillReview('${esc(r.name)}','${esc(r.genre||'')}','')">採点・記録する</button>
+      </div>`).join('');
+}
+
+function esc(s) { return s.replace(/'/g,"\\'"); }
+
+// --- reviews ---
+function setStar(n) {
+  starVal = n;
+  document.querySelectorAll('#star-input .star').forEach((s,i)=>s.classList.toggle('on',i<n));
+}
+function prefillReview(name, genre, area) {
+  document.getElementById('rv-name').value = name;
+  document.getElementById('rv-genre').value = genre;
+  document.getElementById('rv-area').value = area;
+  sw('review'); window.scrollTo(0,0);
+}
+function saveReview() {
+  const name = document.getElementById('rv-name').value.trim();
+  if (!name) { alert('店名を入力してください。'); return; }
+  const rev = {
+    name, area: document.getElementById('rv-area').value,
+    genre: document.getElementById('rv-genre').value,
+    stars: starVal,
+    comment: document.getElementById('rv-comment').value,
+    date: document.getElementById('rv-date').value,
+    id: Date.now()
+  };
+  reviews.unshift(rev);
+  localStorage.setItem('rf_reviews', JSON.stringify(reviews));
+  ['rv-name','rv-area','rv-genre','rv-comment'].forEach(id=>document.getElementById(id).value='');
+  setStar(0); renderReviews(); updateBadges();
+}
+function renderReviews() {
+  document.getElementById('rv-count').textContent = reviews.length+'件';
+  document.getElementById('review-list').innerHTML = !reviews.length
+    ? '<p class="empty">まだ記録がありません</p>'
+    : reviews.map((r,i)=>`<div class="card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div style="flex:1">
+            <div class="card-title">${r.name}</div>
+            <div class="card-sub">${r.genre||''}${r.area?' · '+r.area:''}</div>
+            <div style="color:var(--amber);font-size:18px;margin-bottom:8px;">${'★'.repeat(r.stars||0)}<span style="color:var(--border2)">${'★'.repeat(5-(r.stars||0))}</span></div>
+            ${r.comment?`<div class="card-body">${r.comment}</div>`:''}
+            ${r.date?`<div style="font-size:12px;color:var(--text3);margin-top:6px;">${r.date}</div>`:''}
+          </div>
+          <button class="del-btn" onclick="delReview(${i})">削除</button>
+        </div>
+      </div>`).join('');
+}
+function delReview(i) { reviews.splice(i,1); localStorage.setItem('rf_reviews',JSON.stringify(reviews)); renderReviews(); updateBadges(); }
+
+// --- calendar ---
+async function loadCalendar() {
+  const today = new Date();
+  document.getElementById('today-events').innerHTML = '<p class="loading">Googleカレンダーを取得中…</p>';
+  document.getElementById('month-events').innerHTML = '<p class="loading">取得中…</p>';
+  // スタンドアロン版ではGoogle Calendar APIが必要なため案内を表示
+  document.getElementById('today-events').innerHTML = '<p class="empty" style="text-align:left;padding:12px 0;font-size:13px;">スタンドアロン版でのカレンダー取得にはGoogle Calendar APIの設定が必要です。<br>Claude.ai上のアーティファクト版では自動取得できます。</p>';
+  document.getElementById('month-events').innerHTML = '';
+}
+
+async function addToCalendar() {
+  const name = document.getElementById('cal-name').value.trim();
+  const date = document.getElementById('cal-date').value;
+  const time = document.getElementById('cal-time').value;
+  const loc = document.getElementById('cal-loc').value.trim();
+  const memo = document.getElementById('cal-memo').value.trim();
+  if (!name||!date) { document.getElementById('cal-msg').textContent='店名と日付を入力してください。'; return; }
+  // Google カレンダーのURLスキームで追加
+  const start = (date+time.replace(':','')).replace(/-/g,'');
+  const endD = new Date(`${date}T${time}:00`);
+  endD.setHours(endD.getHours()+2);
+  const endStr = endD.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z/,'Z');
+  const startStr = start + '00Z';
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('🍽 '+name)}&dates=${startStr}/${endStr}&location=${encodeURIComponent(loc)}&details=${encodeURIComponent(memo)}`;
+  window.open(url, '_blank');
+  document.getElementById('cal-msg').textContent = '✓ Googleカレンダーの追加画面を開きました';
+}
+
+// --- data import ---
+function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone') && (document.getElementById('drop-zone').style.background=''); handleFile(e.dataTransfer.files[0]); }
+function handleFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows;
+      if (ext==='csv') { rows = parseCSV(e.target.result); }
+      else { const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}); }
+      importRows(rows);
+    } catch(err) { alert('読み込みに失敗しました。'); }
+  };
+  if (ext==='csv') reader.readAsText(file,'UTF-8'); else reader.readAsArrayBuffer(file);
+}
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).filter(l=>l.trim()).map(line=>{
+    const vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+    const o={}; headers.forEach((h,i)=>o[h]=vals[i]||''); return o;
+  });
+}
+function normalizeRow(row) {
+  const m={'店名':'name','name':'name','ジャンル':'genre','genre':'genre','カテゴリ':'genre','エリア':'area','area':'area','場所':'area','価格帯':'price','price':'price','予算':'price','特徴':'features','features':'features','メモ':'features','記事URL':'url','url':'url','URL':'url'};
+  const o={}; Object.entries(row).forEach(([k,v])=>{ o[m[k.trim()]||k.trim()]=v; }); return o;
+}
+function importRows(rows) {
+  const norm = rows.map(normalizeRow).filter(r=>r.name);
+  stores = [...stores, ...norm];
+  localStorage.setItem('rf_stores', JSON.stringify(stores));
+  renderStoreList(); updateBadges();
+  alert(`${norm.length}件のデータを登録しました。`);
+}
+function renderStoreList() {
+  document.getElementById('db-count').textContent = stores.length+'件';
+  document.getElementById('store-list').innerHTML = !stores.length
+    ? '<p class="empty">データが登録されていません</p>'
+    : `<table class="store-table"><thead><tr><th>店名</th><th>ジャンル</th><th>エリア</th><th>価格帯</th><th></th></tr></thead><tbody>
+      ${stores.map((s,i)=>`<tr><td>${s.name||'-'}</td><td>${s.genre||'-'}</td><td>${s.area||'-'}</td><td>${s.price||'-'}</td><td><button class="del-btn" onclick="delStore(${i})">削除</button></td></tr>`).join('')}
+    </tbody></table>`;
+}
+function delStore(i) { stores.splice(i,1); localStorage.setItem('rf_stores',JSON.stringify(stores)); renderStoreList(); updateBadges(); }
+function clearStores() { if(!confirm('全て削除しますか？')) return; stores=[]; localStorage.setItem('rf_stores','[]'); renderStoreList(); updateBadges(); }
+
+// --- export ---
+function exportCSV(data, filename) {
+  const blob = new Blob([data], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = filename; a.click();
+}
+function exportReviews() {
+  if (!reviews.length) { alert('レビューがありません。'); return; }
+  const header = '店名,エリア,ジャンル,評価,コメント,訪問日';
+  const rows = reviews.map(r=>[r.name,r.area||'',r.genre||'',r.stars||0,r.comment||'',r.date||''].map(v=>`"${v}"`).join(','));
+  exportCSV('\uFEFF'+[header,...rows].join('\n'), 'reviews.csv');
+}
+function exportStores() {
+  if (!stores.length) { alert('登録データがありません。'); return; }
+  const header = '店名,ジャンル,エリア,価格帯,特徴,記事URL';
+  const rows = stores.map(s=>[s.name||'',s.genre||'',s.area||'',s.price||'',s.features||'',s.url||''].map(v=>`"${v}"`).join(','));
+  exportCSV('\uFEFF'+[header,...rows].join('\n'), 'stores.csv');
+}
+
+init();
+</script>
+</body>
+</html>
